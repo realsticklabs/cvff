@@ -45,7 +45,7 @@
 
       videoElement.onloadedmetadata = async () => {
         const duration = videoElement.duration;
-        const frameRate = 1; // Lowered frame rate (1 frame per second)
+        const frameRate = 12; // Set to 12 frames per second
 
         // Set canvas dimensions to match video dimensions
         canvas.width = videoElement.videoWidth / 2; // Compressing by reducing width
@@ -67,19 +67,19 @@
               const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
               const data = imageData.data;
 
-              // Convert pixel data to Base64
-              let base64String = "";
+              // Convert pixel data to Base1000 using Unicode
+              let base1000String = "";
               for (let i = 0; i < data.length; i += 4) {
                 const r = data[i];     // Red
                 const g = data[i + 1]; // Green
                 const b = data[i + 2]; // Blue
-                base64String += String.fromCharCode(r, g, b); // Append RGB values as binary string
+
+                // Convert RGB to a single value (0-255) and map to Unicode (0x1000 to 0x2000)
+                const base1000Value = (r * 256 * 256 + g * 256 + b) % 1000 + 0x1000; // Map to Unicode
+                base1000String += String.fromCharCode(base1000Value); // Append Unicode character
               }
 
-              // Encode to Base64
-              const base64Frame = btoa(base64String);
-              frames.push(base64Frame); // Store the frame in Base64 format
-
+              frames.push(base1000String); // Store the frame in Base1000 format
               resolve();
             };
           });
@@ -127,14 +127,20 @@
 
       function displayFrame() {
         if (totalFrames > 0) {
-          const base64Frame = frames[currentFrame];
+          const base1000Frame = frames[currentFrame];
 
-          // Decode the Base64 frame back to RGB pixel values
-          const binaryString = atob(base64Frame);
+          // Convert Base1000 Unicode back to RGB pixel values
           const imageData = new Uint8ClampedArray(canvas.width * canvas.height * 4);
-          
-          for (let i = 0; i < binaryString.length; i++) {
-            imageData[i] = binaryString.charCodeAt(i);
+          for (let i = 0; i < base1000Frame.length; i++) {
+            const value = base1000Frame.charCodeAt(i) - 0x1000; // Get original value
+            const r = (value >> 16) & 0xFF; // Extract red
+            const g = (value >> 8) & 0xFF;  // Extract green
+            const b = value & 0xFF;         // Extract blue
+
+            imageData[i * 4] = r;      // Red
+            imageData[i * 4 + 1] = g;  // Green
+            imageData[i * 4 + 2] = b;  // Blue
+            imageData[i * 4 + 3] = 255; // Alpha
           }
 
           // Ensure the data length matches ImageData requirements
@@ -148,7 +154,7 @@
             currentFrame = 0; // Loop back to the first frame
           }
           
-          setTimeout(displayFrame, 1000); // Display each frame for 1 second
+          setTimeout(displayFrame, 1000 / 12); // Display each frame for ~83 milliseconds (12 FPS)
         }
       }
 
