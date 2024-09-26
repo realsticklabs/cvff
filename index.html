@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Process Video to CVFF (Alpha Test)</title>
+  <title>indev 20240925</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-    }
-    video {
-      display: none;
     }
     canvas {
       border: 1px solid black;
@@ -27,9 +24,6 @@
 
   <!-- Button to start processing -->
   <button id="processButton">Process Video</button>
-
-  <!-- Output Section -->
-  <div id="output"></div>
 
   <!-- Canvas for rendering frames -->
   <canvas id="canvasElement"></canvas>
@@ -102,7 +96,7 @@
 
     // Helper function to create and download CVFF file
     function createCVFF(frames) {
-      let cvffContent = 'Comic Video File Format v0.1 (Alpha Test)\nFrames:\n'; // Updated to alpha test
+      let cvffContent = 'cvff indev 20240925\nFrames:\n'; // Updated header to cvff indev 20240925
       
       frames.forEach((frame, index) => {
         cvffContent += `Frame ${index + 1}: ${frame}\n`; // Append frame data
@@ -132,22 +126,28 @@
       const totalFrames = frames.length;
 
       function displayFrame() {
-        if (currentFrame < totalFrames) {
+        if (totalFrames > 0) {
           const base64Frame = frames[currentFrame];
 
           // Decode the Base64 frame back to RGB pixel values
           const binaryString = atob(base64Frame);
-          const imageData = new Uint8ClampedArray(binaryString.length);
+          const imageData = new Uint8ClampedArray(canvas.width * canvas.height * 4);
           
           for (let i = 0; i < binaryString.length; i++) {
             imageData[i] = binaryString.charCodeAt(i);
           }
 
-          // Create an ImageData object to draw on canvas
-          const imgData = new ImageData(imageData, canvas.width, canvas.height);
-          ctx.putImageData(imgData, 0, 0);
+          // Ensure the data length matches ImageData requirements
+          if (imageData.length === canvas.width * canvas.height * 4) {
+            const imgData = new ImageData(imageData, canvas.width, canvas.height);
+            ctx.putImageData(imgData, 0, 0);
+          }
 
           currentFrame++;
+          if (currentFrame >= totalFrames) {
+            currentFrame = 0; // Loop back to the first frame
+          }
+          
           setTimeout(displayFrame, 1000); // Display each frame for 1 second
         }
       }
