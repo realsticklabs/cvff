@@ -74,8 +74,8 @@
                 const g = data[i + 1]; // Green
                 const b = data[i + 2]; // Blue
 
-                // Convert RGB to a single value (0-255) and map to Unicode (0x1000 to 0x2000)
-                const base1000Value = (r * 256 * 256 + g * 256 + b) % 1000 + 0x1000; // Map to Unicode
+                // Convert RGB to a single value (0-255) and map to Unicode (0x1000 to 0x100000)
+                const base1000Value = (r * 256 * 256 + g * 256 + b) % 100000 + 0x1000; // Map to Unicode
                 base1000String += String.fromCharCode(base1000Value); // Append Unicode character
               }
 
