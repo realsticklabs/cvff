@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>indev 20240925</title>
+  <title>infdev 20240926</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,6 +27,10 @@
 
   <!-- Canvas for rendering frames -->
   <canvas id="canvasElement"></canvas>
+
+  <!-- Interpreter text area for viewing pixel Unicode mappings -->
+  <textarea id="input" placeholder="Pixel data (Unicode mapped)" style="height: 150px;"></textarea><br>
+  <div id="output"></div>
 
   <script>
     const canvas = document.getElementById('canvasElement');
@@ -74,7 +78,7 @@
                 const g = data[i + 1]; // Green
                 const b = data[i + 2]; // Blue
 
-                // Convert RGB to a single value (0-255) and map to Unicode (0x1000 to 0x100000)
+                // Convert RGB to a single value and map to Unicode
                 const base1000Value = (r * 256 * 256 + g * 256 + b) % 100000 + 0x1000; // Map to Unicode
                 base1000String += String.fromCharCode(base1000Value); // Append Unicode character
               }
@@ -90,14 +94,15 @@
 
         // Create a CVFF file (Custom format)
         createCVFF(frames);
+        interpretUnicode(frames); // Interpret the pixel Unicode characters
         alert('Frames extracted and CVFF file created successfully!');
       };
     });
 
     // Helper function to create and download CVFF file
     function createCVFF(frames) {
-      let cvffContent = 'cvff indev 20240925\nFrames:\n'; // Updated header to cvff indev 20240925
-      
+      let cvffContent = 'cvff infdev 20240926\nFrames:\n'; // Updated header to cvff infdev 20240926
+
       frames.forEach((frame, index) => {
         cvffContent += `Frame ${index + 1}: ${frame}\n`; // Append frame data
       });
@@ -153,12 +158,27 @@
           if (currentFrame >= totalFrames) {
             currentFrame = 0; // Loop back to the first frame
           }
-          
+
           setTimeout(displayFrame, 1000 / 12); // Display each frame for ~83 milliseconds (12 FPS)
         }
       }
 
       displayFrame(); // Start displaying frames
+    }
+
+    // Interpreter to process Unicode-mapped pixels
+    function interpretUnicode(frames) {
+      let interpretedOutput = [];
+
+      frames.forEach(function (frame) {
+        let lineOutput = frame
+          .split("")
+          .map(e => String.fromCharCode(e.charCodeAt(0))) // Interpret each Unicode character
+          .join(""); // Join interpreted Unicode characters
+        interpretedOutput.push(lineOutput); // Store the interpreted line
+      });
+
+      document.getElementById("output").innerText = interpretedOutput.join("\n");
     }
   </script>
 </body>
