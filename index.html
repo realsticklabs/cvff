@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video to Images and Back</title>
-  <!-- Load the single-threaded version of FFmpeg.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.0/dist/ffmpeg.min.js"></script>
+  <title>Video Processing to CVFF</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
     }
-    h1 {
-      font-size: 24px;
+    video {
+      display: none;
     }
-    #output {
-      margin-top: 20px;
+    canvas {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>Convert Video to Frames and Back</h1>
-  
-  <!-- File input -->
+  <h1>Process Video to CVFF</h1>
+
+  <!-- Video input -->
   <input type="file" id="videoInput" accept="video/*"><br><br>
 
   <!-- Button to start processing -->
@@ -31,72 +29,75 @@
   <!-- Output Section -->
   <div id="output"></div>
 
-  <!-- Script -->
+  <!-- Hidden elements for processing -->
+  <video id="videoElement" controls></video>
+  <canvas id="canvasElement"></canvas>
+
   <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
-
-    // Helper function to log to the output div
-    function logMessage(message) {
-      const outputDiv = document.getElementById('output');
-      const messageElement = document.createElement('p');
-      messageElement.textContent = message;
-      outputDiv.appendChild(messageElement);
-    }
-
     document.getElementById('processButton').addEventListener('click', async () => {
       const videoInput = document.getElementById('videoInput').files[0];
-      
-      // Check if a video is uploaded
+
       if (!videoInput) {
         alert('Please upload a video file.');
         return;
       }
 
-      logMessage('Video file loaded. Processing...');
+      const videoElement = document.getElementById('videoElement');
+      const canvas = document.getElementById('canvasElement');
+      const ctx = canvas.getContext('2d');
 
-      try {
-        if (!ffmpeg.isLoaded()) {
-          await ffmpeg.load();
-          logMessage('FFmpeg loaded successfully.');
+      // Load video
+      const videoURL = URL.createObjectURL(videoInput);
+      videoElement.src = videoURL;
+
+      videoElement.onloadedmetadata = async () => {
+        const duration = videoElement.duration;
+        const frameRate = 1; // Lowered frame rate (1 frame per second)
+
+        // Set canvas dimensions to match video dimensions
+        canvas.width = videoElement.videoWidth / 2; // Compressing by reducing width
+        canvas.height = videoElement.videoHeight / 2; // Compressing by reducing height
+
+        let currentTime = 0;
+        let frames = [];
+
+        while (currentTime < duration) {
+          // Set video current time to the next frame to capture
+          videoElement.currentTime = currentTime;
+
+          await new Promise((resolve) => {
+            videoElement.onseeked = () => {
+              // Draw the current frame to the canvas
+              ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+              // Convert the frame to an image data URL
+              const imgURL = canvas.toDataURL('image/png');
+              frames.push(imgURL); // Store the frame
+
+              resolve();
+            };
+          });
+
+          // Increment current time by frame rate interval
+          currentTime += 1 / frameRate;
         }
 
-        const videoFileName = 'input.mp4';  // Input video format
-        await ffmpeg.FS('writeFile', videoFileName, await fetchFile(videoInput));
-
-        logMessage('Extracting frames from video...');
-        
-        // Extract frames from video (1 frame per second)
-        await ffmpeg.run('-i', videoFileName, '-vf', 'fps=1', 'frame_%04d.png');
-        
-        logMessage('Frames extracted successfully!');
-
-        // Create a .cvff file (custom format - content is up to you)
-        const cvffContent = 'Comic Video File Format v1.0\nFrames extracted and saved.';
-        downloadFile('video.cvff', cvffContent);
-        
-        logMessage('.cvff file generated and ready for download.');
-
-        // Recreate video from extracted frames (1 FPS)
-        logMessage('Reassembling video from frames...');
-        await ffmpeg.run('-framerate', '1', '-i', 'frame_%04d.png', 'output.mp4');
-        const outputVideo = ffmpeg.FS('readFile', 'output.mp4');
-
-        // Create a video element and display it
-        const videoBlob = new Blob([outputVideo.buffer], { type: 'video/mp4' });
-        const videoUrl = URL.createObjectURL(videoBlob);
-        const videoElement = document.createElement('video');
-        videoElement.src = videoUrl;
-        videoElement.controls = true;
-        document.getElementById('output').appendChild(videoElement);
-        
-        logMessage('Video reassembled successfully!');
-        logMessage('Process complete!');
-      } catch (error) {
-        logMessage(`An error occurred: ${error.message}`);
-        console.error('FFmpeg error:', error);
-      }
+        // Create a CVFF file (Custom format)
+        createCVFF(frames);
+        alert('Frames extracted and CVFF file created successfully!');
+      };
     });
+
+    // Helper function to create and download CVFF file
+    function createCVFF(frames) {
+      const cvffContent = 'Comic Video File Format v1.0\nFrames:\n';
+      
+      frames.forEach((frame, index) => {
+        cvffContent += `Frame ${index + 1}: ${frame}\n`;
+      });
+
+      downloadFile('video.cvff', cvffContent);
+    }
 
     // Helper function to download files
     function downloadFile(filename, content) {
