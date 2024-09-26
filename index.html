@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Processing to CVFF</title>
+  <title>Process Video to CVFF</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -90,18 +90,23 @@
 
     // Helper function to create and download CVFF file
     function createCVFF(frames) {
-      const cvffContent = 'Comic Video File Format v1.0\nFrames:\n';
+      let cvffContent = 'Comic Video File Format v1.0\nFrames:\n'; // Change const to let
       
       frames.forEach((frame, index) => {
-        cvffContent += `Frame ${index + 1}: ${frame}\n`;
+        cvffContent += `Frame ${index + 1}: ${frame}\n`; // Append frame data
       });
 
       downloadFile('video.cvff', cvffContent);
     }
 
-    // Helper function to download files
+    // Helper function to download files using octet stream
     function downloadFile(filename, content) {
-      const blob = new Blob([content], { type: 'text/plain' });
+      const byteArray = new Uint8Array(content.length);
+      for (let i = 0; i < content.length; i++) {
+        byteArray[i] = content.charCodeAt(i);
+      }
+
+      const blob = new Blob([byteArray], { type: 'application/octet-stream' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = filename;
