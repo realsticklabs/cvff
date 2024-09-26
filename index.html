@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Process Video to CVFF</title>
+  <title>Process Video to CVFF (Alpha Test)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,12 +13,14 @@
       display: none;
     }
     canvas {
-      display: none;
+      border: 1px solid black;
+      display: block;
+      margin: 20px auto;
     }
   </style>
 </head>
 <body>
-  <h1>Process Video to CVFF</h1>
+  <h1>Process Video to CVFF (Alpha Test)</h1>
 
   <!-- Video input -->
   <input type="file" id="videoInput" accept="video/*"><br><br>
@@ -29,11 +31,13 @@
   <!-- Output Section -->
   <div id="output"></div>
 
-  <!-- Hidden elements for processing -->
-  <video id="videoElement" controls></video>
+  <!-- Canvas for rendering frames -->
   <canvas id="canvasElement"></canvas>
 
   <script>
+    const canvas = document.getElementById('canvasElement');
+    const ctx = canvas.getContext('2d');
+
     document.getElementById('processButton').addEventListener('click', async () => {
       const videoInput = document.getElementById('videoInput').files[0];
 
@@ -42,13 +46,8 @@
         return;
       }
 
-      const videoElement = document.getElementById('videoElement');
-      const canvas = document.getElementById('canvasElement');
-      const ctx = canvas.getContext('2d');
-
-      // Load video
-      const videoURL = URL.createObjectURL(videoInput);
-      videoElement.src = videoURL;
+      const videoElement = document.createElement('video');
+      videoElement.src = URL.createObjectURL(videoInput);
 
       videoElement.onloadedmetadata = async () => {
         const duration = videoElement.duration;
@@ -103,13 +102,14 @@
 
     // Helper function to create and download CVFF file
     function createCVFF(frames) {
-      let cvffContent = 'Comic Video File Format v1.0\nFrames:\n'; // Changed const to let
+      let cvffContent = 'Comic Video File Format v0.1 (Alpha Test)\nFrames:\n'; // Updated to alpha test
       
       frames.forEach((frame, index) => {
         cvffContent += `Frame ${index + 1}: ${frame}\n`; // Append frame data
       });
 
       downloadFile('video.cvff', cvffContent);
+      renderFrames(frames); // Render frames immediately after creation
     }
 
     // Helper function to download files using octet stream
@@ -124,6 +124,35 @@
       link.href = URL.createObjectURL(blob);
       link.download = filename;
       link.click();
+    }
+
+    // Function to render frames on the canvas
+    function renderFrames(frames) {
+      let currentFrame = 0;
+      const totalFrames = frames.length;
+
+      function displayFrame() {
+        if (currentFrame < totalFrames) {
+          const base64Frame = frames[currentFrame];
+
+          // Decode the Base64 frame back to RGB pixel values
+          const binaryString = atob(base64Frame);
+          const imageData = new Uint8ClampedArray(binaryString.length);
+          
+          for (let i = 0; i < binaryString.length; i++) {
+            imageData[i] = binaryString.charCodeAt(i);
+          }
+
+          // Create an ImageData object to draw on canvas
+          const imgData = new ImageData(imageData, canvas.width, canvas.height);
+          ctx.putImageData(imgData, 0, 0);
+
+          currentFrame++;
+          setTimeout(displayFrame, 1000); // Display each frame for 1 second
+        }
+      }
+
+      displayFrame(); // Start displaying frames
     }
   </script>
 </body>
